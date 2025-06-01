@@ -23,19 +23,60 @@ def summarize_responses():
     not_well_entries = list(db.not_well.find({}, {"text": 1}))
     improvement_entries = list(db.improvements.find({}, {"text": 1}))
 
-    well_text = " ".join([entry["text"] for entry in well_entries])
-    not_well_text = " ".join([entry["text"] for entry in not_well_entries])
-    improvement_text = " ".join([entry["text"] for entry in improvement_entries])
+    if well_entries:
+        well_text = " ".join(entry["text"] for entry in well_entries)
+        well_summary = summarizer(well_text, max_length=150, min_length=2, do_sample=False)[0]["summary_text"]
+    else:
+        well_summary = "no entries"
 
-    well_summary = summarizer(well_text, max_length=130, min_length=30, do_sample=False)[0]["summary_text"]
-    not_well_summary = summarizer(not_well_text, max_length=130, min_length=30, do_sample=False)[0]["summary_text"]
-    improvement_summary = summarizer(improvement_text, max_length=130, min_length=30, do_sample=False)[0]["summary_text"]
+    if not_well_entries:
+        not_well_text = " ".join(entry["text"] for entry in not_well_entries)
+        not_well_summary = summarizer(not_well_text, max_length=150, min_length=2, do_sample=False)[0]["summary_text"]
+    else:
+        not_well_summary = "no entries"
+
+    if improvement_entries:
+        improvement_text = " ".join(entry["text"] for entry in improvement_entries)
+        improvement_summary = summarizer(improvement_text, max_length=150, min_length=2, do_sample=False)[0]["summary_text"]
+    else:
+        improvement_summary = "no entries"
 
     return well_summary, not_well_summary, improvement_summary
 def clear_responses():
     db.went_well.delete_many({})
     db.not_well.delete_many({})
     db.improvements.delete_many({})
+
+# Initialize session state for the response form
+if "form_well" not in st.session_state:
+    st.session_state["form_well"] = ""
+if "form_not_well" not in st.session_state:
+    st.session_state["form_not_well"] = ""
+if "form_improvement" not in st.session_state:
+    st.session_state["form_improvement"] = ""
+if "new_submission" not in st.session_state:
+    st.session_state["new_submission"] = False
+if "just_submitted" not in st.session_state:
+    st.session_state["just_submitted"] = False
+
+def on_form_submit():
+    st.session_state["new_well"] = st.session_state.get("form_well", "")
+    st.session_state["new_not_well"] = st.session_state.get("form_not_well", "")
+    st.session_state["new_improvement"] = st.session_state.get("form_improvement", "")
+    st.session_state["new_submission"] = True
+
+# Process any new submissions before rendering entries
+if st.session_state.get("new_submission"):
+    insert_response(
+        st.session_state.get("new_well", ""),
+        st.session_state.get("new_not_well", ""),
+        st.session_state.get("new_improvement", "")
+    )
+    st.session_state["new_submission"] = False
+    st.session_state["just_submitted"] = True
+    st.session_state["form_well"] = ""
+    st.session_state["form_not_well"] = ""
+    st.session_state["form_improvement"] = ""
 
 st.title("Agile Retrospective Summary")
 col1, col2, col3 = st.columns(3)
@@ -56,13 +97,14 @@ with col3:
         st.write("- " + entry.get("text", ""))
 
 with st.form("response_form"):
-    well = st.text_area("What went well?")
-    not_well = st.text_area("What did not go well?")
-    improvement = st.text_area("What could we improve?")
-    submit = st.form_submit_button("Submit")
-    if submit:
-        insert_response(well, not_well, improvement)
-        st.success("Response submitted!")
+    st.text_area("What went well?", key="form_well")
+    st.text_area("What did not go well?", key="form_not_well")
+    st.text_area("What could we improve?", key="form_improvement")
+    st.form_submit_button("Submit", on_click=on_form_submit)
+
+if st.session_state.get("just_submitted"):
+    st.success("Response submitted!")
+    st.session_state["just_submitted"] = False
 
 if st.button("Summarise Retro"):
     well_summary, not_well_summary, improvement_summary = summarize_responses()
