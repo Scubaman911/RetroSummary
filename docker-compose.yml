@@ -6,10 +6,29 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+
   retro_summary:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./:/app
     ports:
       - "8501:8501"
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/
+    command:
+      - streamlit
+      - run
+      - app.py
+      - --server.port
+      - "8501"
+      - --server.address
+      - "0.0.0.0"
+      - --server.fileWatcherType
+      - polling
 
 volumes:
   mongo_data:
