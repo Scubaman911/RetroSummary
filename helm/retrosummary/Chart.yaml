@@ -1,0 +1,6 @@
+apiVersion: v2
+name: retrosummary
+description: A Helm chart for Kubernetes to deploy the Agile Retrospective Summary app
+type: application
+version: 0.1.0
+appVersion: "latest"

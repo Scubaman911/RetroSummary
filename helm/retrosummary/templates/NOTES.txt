@@ -1,0 +1,18 @@
+Thank you for installing {{ .Chart.Name }} on namespace {{ .Release.Namespace }}.
+
+Your application has been deployed and is running on port {{ .Values.service.port }}.
+
+To access your application:
+
+  kubectl port-forward svc/{{ include "retrosummary.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then open your browser to http://localhost:{{ .Values.service.port }}
+
+{{- if .Values.ingress.enabled }}
+You have an ingress resource configured. Access it via the host(s):
+{{- range .Values.ingress.hosts }}
+  - {{ .host }}
+{{- end }}
+{{- else }}
+To enable ingress, set ingress.enabled to true in values.yaml and configure your ingress controller.
+{{- end }}
